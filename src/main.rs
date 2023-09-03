@@ -185,9 +185,24 @@ fn main() {
                 .for_each(|entry| add_to_message_from_file(entry, Arc::clone(&message)));
         }
 
-        print!("{}", message.as_ref().lock().unwrap());
+        let message = message
+            .as_ref()
+            .lock()
+            .expect("Should be able to retrieve message at end of parallelization.");
+
+        if message.is_empty() {
+            println!("✨ All good!");
+        } else {
+            print!("{}", message);
+        }
     } else {
-        print!("{}", get_message_from_file(path.as_path()));
+        let message = get_message_from_file(path.as_path());
+
+        if message.is_empty() {
+            println!("✨ All good!");
+        } else {
+            print!("{}", message);
+        }
     }
 }
 
