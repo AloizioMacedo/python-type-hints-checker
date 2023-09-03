@@ -1,6 +1,10 @@
-use std::path::{Path, PathBuf};
+use std::{
+    path::{Path, PathBuf},
+    sync::{Arc, Mutex},
+};
 
 use clap::Parser;
+use rayon::prelude::{ParallelBridge, ParallelIterator};
 
 const PARAMETERS_KIND: u16 = 147;
 const _TYPED_PARAMETER: u16 = 206;
@@ -147,40 +151,50 @@ fn main() {
 
     let path = PathBuf::from(&path);
     if path.is_dir() {
-        let mut message = String::new();
+        let message = Arc::new(Mutex::from(String::new()));
 
         let walkdir = walkdir::WalkDir::new(path);
 
-        for entry in walkdir.into_iter().flatten() {
-            if !entry.metadata().expect("Should have metadata.").is_dir()
-                && entry
-                    .file_name()
-                    .to_str()
-                    .expect("Should be valid path name.")
-                    .ends_with(".py")
-            {
-                let messages_from_file = get_message_from_file(entry.path());
-                if messages_from_file.is_empty() {
-                    continue;
-                }
+        walkdir
+            .into_iter()
+            .flatten()
+            .par_bridge()
+            .for_each(|entry| add_to_message_from_file(entry, Arc::clone(&message)));
 
-                message += format!(
-                    "File: {}\n",
-                    entry.path().to_str().expect("Should be valid path name.")
-                )
-                .as_str();
-
-                let messages_from_file = messages_from_file.split('\n');
-
-                for line in messages_from_file {
-                    message += &("    ".to_string() + line + "\n")
-                }
-            }
-        }
-
-        print!("{}", message);
+        print!("{}", message.as_ref().lock().unwrap());
     } else {
         print!("{}", get_message_from_file(path.as_path()));
+    }
+}
+
+fn add_to_message_from_file(entry: walkdir::DirEntry, message: Arc<Mutex<String>>) {
+    if !entry.metadata().expect("Should have metadata.").is_dir()
+        && entry
+            .file_name()
+            .to_str()
+            .expect("Should be valid path name.")
+            .ends_with(".py")
+    {
+        let messages_from_file = get_message_from_file(entry.path());
+        if messages_from_file.is_empty() {
+            return;
+        }
+
+        let mut message = message
+            .lock()
+            .expect("Should be able to get a lock on the message.");
+
+        *message += format!(
+            "File: {}\n",
+            entry.path().to_str().expect("Should be valid path name.")
+        )
+        .as_str();
+
+        let messages_from_file = messages_from_file.split('\n');
+
+        for line in messages_from_file {
+            *message += &("    ".to_string() + line + "\n")
+        }
     }
 }
 
