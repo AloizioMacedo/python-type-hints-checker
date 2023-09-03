@@ -1,0 +1,17 @@
+[package]
+name = "missingtypehints"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[profile.dev]
+opt-level = 0           # Use slightly better optimizations.
+overflow-checks = false # Disable integer overflow checks.
+debug = 2
+
+[dependencies]
+clap = "4.4.2"
+tree-sitter = "0.20.10"
+tree-sitter-python = "0.20.4"
+tree-sitter-traversal = "0.1.2"
