@@ -162,10 +162,7 @@ fn main() {
             {
                 message += format!(
                     "File: {}\n",
-                    entry
-                        .file_name()
-                        .to_str()
-                        .expect("Should be valid path name.")
+                    entry.path().to_str().expect("Should be valid path name.")
                 )
                 .as_str();
                 message += &get_message_from_file(entry.path());
