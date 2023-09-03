@@ -12,8 +12,7 @@ const DEFAULT_PARAMETER: u16 = 182;
 #[derive(clap::Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Args {
-    /// Name of the person to greet
-    #[arg(short, long)]
+    /// File or directory to check
     path: String,
 }
 
