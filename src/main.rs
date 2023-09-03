@@ -5,6 +5,7 @@ use std::{
 
 use clap::Parser;
 use rayon::prelude::{ParallelBridge, ParallelIterator};
+use walkdir::DirEntry;
 
 const PARAMETERS_KIND: u16 = 147;
 const _TYPED_PARAMETER: u16 = 206;
@@ -18,6 +19,10 @@ const DEFAULT_PARAMETER: u16 = 182;
 struct Args {
     /// File or directory to check
     path: String,
+
+    /// Ignores hidden subdirectories and files.
+    #[arg(short, long, default_value_t = false)]
+    ignore_hidden: bool,
 }
 
 pub fn get_tree_from_file(
@@ -156,23 +161,42 @@ fn get_message_from_positions(positions: &[Position]) -> String {
 fn main() {
     let args = Args::parse();
     let path = args.path;
+    let ignore_hidden = args.ignore_hidden;
 
     let path = PathBuf::from(&path);
+
     if path.is_dir() {
         let message = Arc::new(Mutex::from(String::new()));
 
         let walkdir = walkdir::WalkDir::new(path);
 
-        walkdir
-            .into_iter()
-            .flatten()
-            .par_bridge()
-            .for_each(|entry| add_to_message_from_file(entry, Arc::clone(&message)));
+        if ignore_hidden {
+            walkdir
+                .into_iter()
+                .filter_entry(is_not_hidden)
+                .flatten()
+                .par_bridge()
+                .for_each(|entry| add_to_message_from_file(entry, Arc::clone(&message)));
+        } else {
+            walkdir
+                .into_iter()
+                .flatten()
+                .par_bridge()
+                .for_each(|entry| add_to_message_from_file(entry, Arc::clone(&message)));
+        }
 
         print!("{}", message.as_ref().lock().unwrap());
     } else {
         print!("{}", get_message_from_file(path.as_path()));
     }
+}
+
+fn is_not_hidden(entry: &DirEntry) -> bool {
+    entry
+        .file_name()
+        .to_str()
+        .map(|s| !s.starts_with('.'))
+        .unwrap_or(false)
 }
 
 fn add_to_message_from_file(entry: walkdir::DirEntry, message: Arc<Mutex<String>>) {
