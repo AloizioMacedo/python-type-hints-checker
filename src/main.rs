@@ -100,19 +100,27 @@ pub fn find_missing_types_positions(source_code: &[u8], tree: tree_sitter::Tree)
             }
             if !has_return_type {
                 let identifier = node.child(1).expect("Function should have name.");
-                let utf8_text = identifier
+                let mut function_name = identifier
                     .utf8_text(source_code)
                     .expect("Function should have name.")
                     .to_string();
 
-                if utf8_text == "main" {
+                if function_name == "def" {
+                    let identifier = node.child(2).expect("Function should have name.");
+                    function_name = identifier
+                        .utf8_text(source_code)
+                        .expect("Function should have name.")
+                        .to_string();
+                }
+
+                if function_name == "main" {
                     continue;
                 }
 
                 results.push(Position {
                     _start: node.start_position(),
                     _end: node.end_position(),
-                    _missing_type: MissingType::Return(utf8_text),
+                    _missing_type: MissingType::Return(function_name),
                 });
             }
         }
