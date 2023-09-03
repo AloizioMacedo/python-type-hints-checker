@@ -1,3 +1,5 @@
+use std::path::{Path, PathBuf};
+
 use clap::Parser;
 
 const PARAMETERS_KIND: u16 = 147;
@@ -142,15 +144,50 @@ fn get_message_from_positions(positions: &[Position]) -> String {
 
 fn main() {
     let args = Args::parse();
+    let path = args.path;
 
+    let path = PathBuf::from(&path);
+    if path.is_dir() {
+        let mut message = String::new();
+
+        let walkdir = walkdir::WalkDir::new(path);
+
+        for entry in walkdir.into_iter().flatten() {
+            if !entry.metadata().expect("Should have metadata.").is_dir()
+                && entry
+                    .file_name()
+                    .to_str()
+                    .expect("Should be valid path name.")
+                    .ends_with(".py")
+            {
+                message += format!(
+                    "File: {}\n",
+                    entry
+                        .file_name()
+                        .to_str()
+                        .expect("Should be valid path name.")
+                )
+                .as_str();
+                message += &get_message_from_file(entry.path());
+            }
+        }
+
+        print!("{}", message);
+    } else {
+        print!("{}", get_message_from_file(path.as_path()));
+    }
+}
+
+fn get_message_from_file(file: &Path) -> String {
     let mut parser = create_python_parser();
 
-    let (tree, source_code) = get_tree_from_file(&mut parser, &args.path);
+    let (tree, source_code) = get_tree_from_file(
+        &mut parser,
+        file.to_str().expect("Should be valid path name."),
+    );
     let positions = find_missing_types_positions(&source_code, tree);
 
-    let message = get_message_from_positions(&positions);
-
-    print!("{message}");
+    get_message_from_positions(&positions)
 }
 
 #[cfg(test)]

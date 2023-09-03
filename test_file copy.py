@@ -5,7 +5,7 @@ def get_message_from_addition(num1: int, num2: int, message: str = "oi") -> str:
     return f"{message}: {num1 + num2}"
 
 
-def omggggggg(x: str, y: int, new_name, b: list):
+def function_without_return_type(x: str, y: int, a, b: list):
     return "oi"
 
 
@@ -19,7 +19,7 @@ def main():
 
 
 class Hey:
-    def ho(self, this_has_nothing, q: int) -> int:
+    def ho(self, p, q: int) -> int:
         return q
 
 
