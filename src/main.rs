@@ -44,8 +44,8 @@ pub struct Position {
 
 #[derive(Debug)]
 enum MissingType {
-    MissingReturn,
-    MissingParameter,
+    Return(String),
+    Parameter(String),
 }
 
 pub fn find_missing_types_positions(source_code: &[u8], tree: tree_sitter::Tree) -> Vec<Position> {
@@ -58,6 +58,13 @@ pub fn find_missing_types_positions(source_code: &[u8], tree: tree_sitter::Tree)
 
             let mut has_return_type = false;
             for child in node.children(&mut cursor) {
+                println!(
+                    "Kind: {:?}, Text: {:?}, Id: {:?}",
+                    child.kind(),
+                    child.utf8_text(source_code),
+                    child.kind_id()
+                );
+
                 if child.kind() == "type" {
                     has_return_type = true;
                 }
@@ -66,7 +73,9 @@ pub fn find_missing_types_positions(source_code: &[u8], tree: tree_sitter::Tree)
                     let mut cursor = child.walk();
                     for inner_child in child.children(&mut cursor) {
                         if matches!(inner_child.kind_id(), IDENTIFIER | DEFAULT_PARAMETER) {
-                            if let Ok("self") = inner_child.utf8_text(source_code) {
+                            let utf8_text = inner_child.utf8_text(source_code);
+
+                            if let Ok("self") = utf8_text {
                                 continue;
                             }
 
@@ -76,17 +85,26 @@ pub fn find_missing_types_positions(source_code: &[u8], tree: tree_sitter::Tree)
                             results.push(Position {
                                 _start: start,
                                 _end: end,
-                                _missing_type: MissingType::MissingParameter,
+                                _missing_type: MissingType::Parameter(
+                                    utf8_text.expect("Parameter should have name").to_string(),
+                                ),
                             });
                         }
                     }
                 }
             }
             if !has_return_type {
+                let identifier = node.child(1).expect("Function should have name.");
+
                 results.push(Position {
                     _start: node.start_position(),
                     _end: node.end_position(),
-                    _missing_type: MissingType::MissingReturn,
+                    _missing_type: MissingType::Return(
+                        identifier
+                            .utf8_text(source_code)
+                            .expect("Function should have name.")
+                            .to_string(),
+                    ),
                 });
             }
         }
@@ -111,9 +129,7 @@ mod tests {
     #[test]
     fn tree_from_test_file() {
         let mut parser = create_python_parser();
-        let tree = get_tree_from_file(&mut parser, "test_file.py");
-
-        println!("{:?}", tree);
+        get_tree_from_file(&mut parser, "test_file.py");
     }
 
     #[test]
