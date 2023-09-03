@@ -11,7 +11,7 @@ overflow-checks = false # Disable integer overflow checks.
 debug = 2
 
 [dependencies]
-clap = "4.4.2"
+clap = { version = "4.4.2", features = ["derive"] }
 tree-sitter = "0.20.10"
 tree-sitter-python = "0.20.4"
 tree-sitter-traversal = "0.1.2"

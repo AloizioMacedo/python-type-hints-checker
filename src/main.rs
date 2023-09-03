@@ -1,4 +1,4 @@
-use tree_sitter::Parser;
+use clap::Parser;
 
 const PARAMETERS_KIND: u16 = 147;
 const _TYPED_PARAMETER: u16 = 206;
@@ -6,7 +6,19 @@ const _TYPED_DEFAULT_PARAMETER: u16 = 183;
 const IDENTIFIER: u16 = 1;
 const DEFAULT_PARAMETER: u16 = 182;
 
-pub fn get_tree_from_file(parser: &mut Parser, path: &str) -> (tree_sitter::Tree, Vec<u8>) {
+/// Checks missing type hints in function definitions for Python files.
+#[derive(clap::Parser, Debug)]
+#[command(author, version, about, long_about = None)]
+struct Args {
+    /// Name of the person to greet
+    #[arg(short, long)]
+    path: String,
+}
+
+pub fn get_tree_from_file(
+    parser: &mut tree_sitter::Parser,
+    path: &str,
+) -> (tree_sitter::Tree, Vec<u8>) {
     let contents =
         std::fs::read_to_string(path).unwrap_or_else(|_| panic!("File in {path} should exist."));
     let contents_to_return = contents.as_bytes().to_vec();
@@ -14,8 +26,8 @@ pub fn get_tree_from_file(parser: &mut Parser, path: &str) -> (tree_sitter::Tree
     (parser.parse(contents, None).unwrap(), contents_to_return)
 }
 
-pub fn create_python_parser() -> Parser {
-    let mut parser = Parser::new();
+pub fn create_python_parser() -> tree_sitter::Parser {
+    let mut parser = tree_sitter::Parser::new();
     parser
         .set_language(tree_sitter_python::language())
         .expect("Error loading Python grammar");
@@ -50,8 +62,6 @@ pub fn find_missing_types_positions(source_code: &[u8], tree: tree_sitter::Tree)
                     has_return_type = true;
                 }
 
-                println!("{:?}", child.kind());
-
                 if child.kind_id() == PARAMETERS_KIND {
                     let mut cursor = child.walk();
                     for inner_child in child.children(&mut cursor) {
@@ -59,11 +69,6 @@ pub fn find_missing_types_positions(source_code: &[u8], tree: tree_sitter::Tree)
                             if let Ok("self") = inner_child.utf8_text(source_code) {
                                 continue;
                             }
-                            println!(
-                                "Child: {:?}, {:?}",
-                                inner_child.kind(),
-                                inner_child.utf8_text(source_code)
-                            );
 
                             let start = inner_child.start_position();
                             let end = inner_child.end_position();
@@ -90,10 +95,14 @@ pub fn find_missing_types_positions(source_code: &[u8], tree: tree_sitter::Tree)
 }
 
 fn main() {
-    let mut parser = Parser::new();
-    parser
-        .set_language(tree_sitter_python::language())
-        .expect("Error loading Python grammar");
+    let args = Args::parse();
+
+    let mut parser = create_python_parser();
+
+    let (tree, source_code) = get_tree_from_file(&mut parser, &args.path);
+    let positions = find_missing_types_positions(&source_code, tree);
+
+    println!("{:?}", positions);
 }
 
 #[cfg(test)]
