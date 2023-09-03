@@ -160,12 +160,22 @@ fn main() {
                     .expect("Should be valid path name.")
                     .ends_with(".py")
             {
+                let messages_from_file = get_message_from_file(entry.path());
+                if messages_from_file.is_empty() {
+                    continue;
+                }
+
                 message += format!(
                     "File: {}\n",
                     entry.path().to_str().expect("Should be valid path name.")
                 )
                 .as_str();
-                message += &get_message_from_file(entry.path());
+
+                let messages_from_file = messages_from_file.split('\n');
+
+                for line in messages_from_file {
+                    message += &("    ".to_string() + line + "\n")
+                }
             }
         }
 
