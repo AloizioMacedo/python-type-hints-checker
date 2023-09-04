@@ -1,6 +1,6 @@
 [package]
 name = "python-type-hints-checker"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 description = "Checks Python files for missing type hints in function parameters and return values."
 license = "MIT"
