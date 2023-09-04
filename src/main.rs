@@ -24,7 +24,7 @@ struct Args {
     #[arg(alias = "ih", long, default_value_t = false)]
     ignore_hidden: bool,
 
-    /// Ignores hidden subdirectories and files.
+    /// Ignores tests subdirectories and files.
     #[arg(alias = "it", long, default_value_t = false)]
     ignore_tests: bool,
 }

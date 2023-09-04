@@ -29,7 +29,7 @@ Arguments:
 
 Options:
       --ignore-hidden  Ignores hidden subdirectories and files
-      --ignore-tests   Ignores hidden subdirectories and files
+      --ignore-tests   Ignores tests subdirectories and files
   -h, --help           Print help
   -V, --version        Print version
 ```
