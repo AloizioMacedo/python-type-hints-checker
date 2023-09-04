@@ -46,10 +46,10 @@ pub fn create_python_parser() -> tree_sitter::Parser {
 }
 
 #[derive(Debug)]
-pub struct Position {
-    _start: tree_sitter::Point,
+struct Position {
+    start: tree_sitter::Point,
     _end: tree_sitter::Point,
-    _missing_type: MissingType,
+    missing_type: MissingType,
 }
 
 #[derive(Debug)]
@@ -58,7 +58,7 @@ enum MissingType {
     Parameter(String),
 }
 
-pub fn find_missing_types_positions(source_code: &[u8], tree: tree_sitter::Tree) -> Vec<Position> {
+fn find_missing_types_positions(source_code: &[u8], tree: tree_sitter::Tree) -> Vec<Position> {
     let walk = tree.walk();
     let mut results = Vec::new();
 
@@ -93,9 +93,9 @@ pub fn find_missing_types_positions(source_code: &[u8], tree: tree_sitter::Tree)
                             let end = inner_child.end_position();
 
                             results.push(Position {
-                                _start: start,
+                                start,
                                 _end: end,
-                                _missing_type: MissingType::Parameter(
+                                missing_type: MissingType::Parameter(
                                     utf8_text.expect("Parameter should have name").to_string(),
                                 ),
                             });
@@ -123,9 +123,9 @@ pub fn find_missing_types_positions(source_code: &[u8], tree: tree_sitter::Tree)
                 }
 
                 results.push(Position {
-                    _start: node.start_position(),
+                    start: node.start_position(),
                     _end: node.end_position(),
-                    _missing_type: MissingType::Return(function_name),
+                    missing_type: MissingType::Return(function_name),
                 });
             }
         }
@@ -137,19 +137,19 @@ fn get_message_from_positions(positions: &[Position]) -> String {
     let mut message = String::new();
 
     for position in positions {
-        match &position._missing_type {
+        match &position.missing_type {
             MissingType::Return(name) => {
                 message += &format!(
                     "Function '{name}' in line {} and column {} is missing a return type.\n",
-                    position._start.row + 1,
-                    position._start.column + 1
+                    position.start.row + 1,
+                    position.start.column + 1
                 )
             }
             MissingType::Parameter(name) => {
                 message += &format!(
                     "Parameter '{name}' in line {} and column {} is missing a type hint.\n",
-                    position._start.row + 1,
-                    position._start.column + 1
+                    position.start.row + 1,
+                    position.start.column + 1
                 )
             }
         }
