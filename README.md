@@ -30,6 +30,7 @@ Arguments:
 Options:
       --ignore-hidden  Ignores hidden subdirectories and files
       --ignore-tests   Ignores tests subdirectories and files
+      --ignore-return  Ignores absence of return type hints
   -h, --help           Print help
   -V, --version        Print version
 ```
