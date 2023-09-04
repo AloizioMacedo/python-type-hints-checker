@@ -2,6 +2,9 @@
 name = "python-type-hints-checker"
 version = "0.1.0"
 edition = "2021"
+description = "Checks Python files for missing type hints in function parameters and return values."
+license = "MIT"
+readme = "README.md"
 
 [[bin]]
 name = "pythcheck"
