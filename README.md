@@ -28,7 +28,8 @@ Arguments:
   <PATH>  File or directory to check
 
 Options:
-  -i, --ignore-hidden  Ignores hidden subdirectories and files
+      --ignore-hidden  Ignores hidden subdirectories and files
+      --ignore-tests   Ignores hidden subdirectories and files
   -h, --help           Print help
   -V, --version        Print version
 ```
