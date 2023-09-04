@@ -27,6 +27,10 @@ struct Args {
     /// Ignores tests subdirectories and files.
     #[arg(alias = "it", long, default_value_t = false)]
     ignore_tests: bool,
+
+    /// Ignores absence of return type hints.
+    #[arg(alias = "ir", long, default_value_t = false)]
+    ignore_return: bool,
 }
 
 pub fn get_tree_from_file(
@@ -62,7 +66,11 @@ enum MissingType {
     Parameter(String),
 }
 
-fn find_missing_types_positions(source_code: &[u8], tree: tree_sitter::Tree) -> Vec<Position> {
+fn find_missing_types_positions(
+    source_code: &[u8],
+    tree: tree_sitter::Tree,
+    ignore_return: bool,
+) -> Vec<Position> {
     let walk = tree.walk();
     let mut results = Vec::new();
 
@@ -107,7 +115,7 @@ fn find_missing_types_positions(source_code: &[u8], tree: tree_sitter::Tree) -> 
                     }
                 }
             }
-            if !has_return_type {
+            if !has_return_type & !ignore_return {
                 let identifier = node.child(1).expect("Function should have name.");
                 let mut function_name = identifier
                     .utf8_text(source_code)
@@ -167,6 +175,7 @@ fn main() {
     let path = args.path;
     let ignore_hidden = args.ignore_hidden;
     let ignore_tests = args.ignore_tests;
+    let ignore_return = args.ignore_return;
 
     let path = PathBuf::from(&path);
 
@@ -188,7 +197,7 @@ fn main() {
             .filter_entry(|x| filters.iter().all(|filter| filter.should_be_processed(x)))
             .flatten()
             .par_bridge()
-            .for_each(|entry| add_to_message_from_file(entry, Arc::clone(&message)));
+            .for_each(|entry| add_to_message_from_file(entry, Arc::clone(&message), ignore_return));
 
         let message = message
             .as_ref()
@@ -201,7 +210,7 @@ fn main() {
             print!("{}", message);
         }
     } else {
-        let message = get_message_from_file(path.as_path());
+        let message = get_message_from_file(path.as_path(), ignore_return);
 
         if message.is_empty() {
             println!("✨ All good!");
@@ -239,7 +248,11 @@ impl Filter for NotTest {
     }
 }
 
-fn add_to_message_from_file(entry: walkdir::DirEntry, message: Arc<Mutex<String>>) {
+fn add_to_message_from_file(
+    entry: walkdir::DirEntry,
+    message: Arc<Mutex<String>>,
+    ignore_return: bool,
+) {
     if !entry.metadata().expect("Should have metadata.").is_dir()
         && entry
             .file_name()
@@ -247,7 +260,7 @@ fn add_to_message_from_file(entry: walkdir::DirEntry, message: Arc<Mutex<String>
             .expect("Should be valid path name.")
             .ends_with(".py")
     {
-        let messages_from_file = get_message_from_file(entry.path());
+        let messages_from_file = get_message_from_file(entry.path(), ignore_return);
         if messages_from_file.is_empty() {
             return;
         }
@@ -270,14 +283,14 @@ fn add_to_message_from_file(entry: walkdir::DirEntry, message: Arc<Mutex<String>
     }
 }
 
-fn get_message_from_file(file: &Path) -> String {
+fn get_message_from_file(file: &Path, ignore_return: bool) -> String {
     let mut parser = create_python_parser();
 
     let (tree, source_code) = get_tree_from_file(
         &mut parser,
         file.to_str().expect("Should be valid path name."),
     );
-    let positions = find_missing_types_positions(&source_code, tree);
+    let positions = find_missing_types_positions(&source_code, tree, ignore_return);
 
     get_message_from_positions(&positions)
 }
@@ -295,6 +308,9 @@ mod tests {
     fn find_args_test() {
         let mut parser = create_python_parser();
         let (tree, source_code) = get_tree_from_file(&mut parser, "test_file.py");
-        println!("{:?}", find_missing_types_positions(&source_code, tree));
+        println!(
+            "{:?}",
+            find_missing_types_positions(&source_code, tree, false)
+        );
     }
 }
