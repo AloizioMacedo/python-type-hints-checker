@@ -209,18 +209,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "missingtypehints"
-version = "0.1.0"
-dependencies = [
- "clap",
- "rayon",
- "tree-sitter",
- "tree-sitter-python",
- "tree-sitter-traversal",
- "walkdir",
-]
-
-[[package]]
 name = "num_cpus"
 version = "1.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -237,6 +225,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "18fb31db3f9bddb2ea821cde30a9f70117e3f119938b5ee630b7403aa6e2ead9"
 dependencies = [
  "unicode-ident",
+]
+
+[[package]]
+name = "python-type-hints-checker"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "rayon",
+ "tree-sitter",
+ "tree-sitter-python",
+ "tree-sitter-traversal",
+ "walkdir",
 ]
 
 [[package]]
