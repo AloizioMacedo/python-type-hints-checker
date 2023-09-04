@@ -21,8 +21,12 @@ struct Args {
     path: String,
 
     /// Ignores hidden subdirectories and files.
-    #[arg(short, long, default_value_t = false)]
+    #[arg(alias = "ih", long, default_value_t = false)]
     ignore_hidden: bool,
+
+    /// Ignores hidden subdirectories and files.
+    #[arg(alias = "it", long, default_value_t = false)]
+    ignore_tests: bool,
 }
 
 pub fn get_tree_from_file(
@@ -162,6 +166,7 @@ fn main() {
     let args = Args::parse();
     let path = args.path;
     let ignore_hidden = args.ignore_hidden;
+    let ignore_tests = args.ignore_tests;
 
     let path = PathBuf::from(&path);
 
@@ -170,20 +175,20 @@ fn main() {
 
         let walkdir = walkdir::WalkDir::new(path);
 
+        let mut filters: Vec<Box<dyn Filter + Sync>> = Vec::new();
         if ignore_hidden {
-            walkdir
-                .into_iter()
-                .filter_entry(is_not_hidden)
-                .flatten()
-                .par_bridge()
-                .for_each(|entry| add_to_message_from_file(entry, Arc::clone(&message)));
-        } else {
-            walkdir
-                .into_iter()
-                .flatten()
-                .par_bridge()
-                .for_each(|entry| add_to_message_from_file(entry, Arc::clone(&message)));
+            filters.push(Box::new(NotHidden));
         }
+        if ignore_tests {
+            filters.push(Box::new(NotTest));
+        }
+
+        walkdir
+            .into_iter()
+            .filter_entry(|x| filters.iter().all(|filter| filter.should_be_processed(x)))
+            .flatten()
+            .par_bridge()
+            .for_each(|entry| add_to_message_from_file(entry, Arc::clone(&message)));
 
         let message = message
             .as_ref()
@@ -206,12 +211,32 @@ fn main() {
     }
 }
 
-fn is_not_hidden(entry: &DirEntry) -> bool {
-    entry
-        .file_name()
-        .to_str()
-        .map(|s| !s.starts_with('.') || s == ".")
-        .unwrap_or(false)
+trait Filter {
+    fn should_be_processed(&self, entry: &DirEntry) -> bool;
+}
+
+struct NotHidden;
+
+impl Filter for NotHidden {
+    fn should_be_processed(&self, entry: &DirEntry) -> bool {
+        entry
+            .file_name()
+            .to_str()
+            .map(|s| !s.starts_with('.') || s == ".")
+            .unwrap_or(false)
+    }
+}
+
+struct NotTest;
+
+impl Filter for NotTest {
+    fn should_be_processed(&self, entry: &DirEntry) -> bool {
+        entry
+            .file_name()
+            .to_str()
+            .map(|s| !s.starts_with("test_") && s != "tests")
+            .unwrap_or(false)
+    }
 }
 
 fn add_to_message_from_file(entry: walkdir::DirEntry, message: Arc<Mutex<String>>) {
